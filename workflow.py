@@ -3,7 +3,7 @@ import os, sys
 import math
 from glob import glob
 
-project_name = "your_project_name"
+project_name = "HB1SP"
 
 gwf = Workflow(defaults={"account": "edna"}) 
 
@@ -11,7 +11,7 @@ gwf = Workflow(defaults={"account": "edna"})
 
 batchfile = "batchfileDADA2.list"
 
-libraries = [x for x in glob("your_raw_data_path/*") if os.path.isdir(x)]
+libraries = [x for x in glob("backup/data/*") if os.path.isdir(x)]
 
 for library_root in libraries:
     library_id = os.path.basename(library_root)
@@ -20,15 +20,15 @@ for library_root in libraries:
     with open(os.path.join(library_root, "tags.txt")) as tags_file:
         for line in tags_file:
             output_files = []
-            tag_id, fseq, rseq = line.split("\t")
-            
+            tag_id, fseq, rseq = line.split()
+
             output_files.append("tmp/{}/DADA2_AS/{}_R1.fastq".format(library_id, tag_id))
             output_files.append("tmp/{}/DADA2_AS/{}_R2.fastq".format(library_id, tag_id))
             output_files.append("tmp/{}/DADA2_SS/{}_R1.fastq".format(library_id, tag_id))
             output_files.append("tmp/{}/DADA2_SS/{}_R2.fastq".format(library_id, tag_id))
 
             gwf.target(
-                name="demultiplex_{}_{}_{}".format(project_name, library_id, tag_id),
+                name="demultiplex_{}_{}_{}".format(project_name,library_id, tag_id),
                 inputs=input_files,
                 outputs=output_files,
                 cores=1,
@@ -46,16 +46,16 @@ for library_root in libraries:
     with open(os.path.join(library_root, "tags.txt")) as tags_file:
         for line in tags_file:
             input_files = []
-            tag_id, fseq, rseq = line.split("\t")
-            
+            tag_id, fseq, rseq = line.split()
+    
             input_files.append("tmp/{}/DADA2_AS/{}_R1.fastq".format(library_id, tag_id))
             input_files.append("tmp/{}/DADA2_AS/{}_R2.fastq".format(library_id, tag_id))
             input_files.append("tmp/{}/DADA2_SS/{}_R1.fastq".format(library_id, tag_id))
             input_files.append("tmp/{}/DADA2_SS/{}_R2.fastq".format(library_id, tag_id))
     
             output_files = []
-            tag_id, fseq, rseq = line.split("\t")
-            
+            tag_id, fseq, rseq = line.split()
+
             output_files.append("tmp/{}/DADA2_AS/filtered/{}_F_filtered.fastq".format(library_id, tag_id))
             output_files.append("tmp/{}/DADA2_AS/filtered/{}_R_filtered.fastq".format(library_id, tag_id))
             output_files.append("tmp/{}/DADA2_SS/filtered/{}_F_filtered.fastq".format(library_id, tag_id))
@@ -87,15 +87,15 @@ for library_root in libraries:
     with open(os.path.join(library_root, "tags.txt")) as tags_file:
         for line in tags_file:
             input_files = []
-            tag_id, fseq, rseq = line.split("\t")
-            
+            tag_id, fseq, rseq = line.split()
+    
             input_files.append("tmp/{}/DADA2_AS/filtered/{}_F_filtered.fastq".format(library_id, tag_id))
             input_files.append("tmp/{}/DADA2_AS/filtered/{}_R_filtered.fastq".format(library_id, tag_id))
             input_files.append("tmp/{}/DADA2_SS/filtered/{}_F_filtered.fastq".format(library_id, tag_id))
             input_files.append("tmp/{}/DADA2_SS/filtered/{}_R_filtered.fastq".format(library_id, tag_id))
     
             output_files = []
-            tag_id, fseq, rseq = line.split("\t")
+            tag_id, fseq, rseq = line.split()
             
             output_files.append("tmp/{}/DADA2_AS/filtered/matched/{}_F_matched.fastq.gz".format(library_id, tag_id))
             output_files.append("tmp/{}/DADA2_AS/filtered/matched/{}_R_matched.fastq.gz".format(library_id, tag_id))
@@ -155,8 +155,8 @@ for library_root in libraries:
     input_files = []
     with open(os.path.join(library_root, "tags.txt")) as tags_file:
         for line in tags_file:
-            tag_id, fseq, rseq = line.split("\t")
-            
+            tag_id, fseq, rseq = line.split()
+
             input_files.append("tmp/{}/DADA2_AS/filtered/matched/{}_F_matched.fastq.gz".format(library_id, tag_id))
             input_files.append("tmp/{}/DADA2_AS/filtered/matched/{}_R_matched.fastq.gz".format(library_id, tag_id))
             input_files.append("tmp/{}/DADA2_SS/filtered/matched/{}_F_matched.fastq.gz".format(library_id, tag_id))
@@ -180,7 +180,7 @@ for library_root in libraries:
       Rscript ./scripts/remove_errors.r tmp/{library_id}
       """.format(library_id=library_id)         
             
-#Summing sense and antisense sequence tables
+#Summing sense (SS) and antisense (AS) sequence tables
 for library_root in libraries:
     library_id = os.path.basename(library_root)
     input_files = []
@@ -266,10 +266,10 @@ def blaster(k, outFolder):
         'walltime': '4:00:00'
     }
     spec = '''
-    export BLASTDB="your_database_path"
+    export BLASTDB=/faststorage/project/eDNA/blastdb/nt_201124/
     mkdir -p {out}
     echo "RUNNING THREAD {k} BLAST"
-    blastn -db "your_database_path/file_prefix" -max_target_seqs 500 -num_threads 4 -outfmt "6 std qlen qcovs staxid" -out {outBlast} -qcov_hsp_perc 90 -perc_identity 80 -query {inputFasta}
+    blastn -db /faststorage/project/eDNA/blastdb/nt_201124/nt -max_target_seqs 500 -num_threads 4 -outfmt "6 std qlen qcovs staxid" -out {outBlast} -qcov_hsp_perc 90 -perc_identity 80 -query {inputFasta}
     echo "hello" > {outLog}
     echo "DONE THREAD {k}"
     '''.format(out=outFolder, k=k, inputFasta=inputFasta, outBlast=outBlast, outLog=outLog)
@@ -295,9 +295,11 @@ def taxonomy(taxonomyFolder, blastFolder, k):
       Rscript scripts/taxonomy.r {inputFile} {summaryFile} {outputFile}
     else
       touch {outputFile}
-      touch {summaryFile}
     fi
-       '''.format(taxonomyFolder=taxonomyFolder, inputFile=inputFile, summaryFile=summaryFile, outputFile=outputFile) 
+    if grep -q "Query coverage is less than 100% for all hits" ".gwf/logs/taxonomy_" + str(k) + ".stdout"
+    then
+      touch {outputFile}
+    '''.format(taxonomyFolder=taxonomyFolder, inputFile=inputFile, summaryFile=summaryFile, outputFile=outputFile) 
     return inputs, outputs, options, spec
 
 inputName = 'results/DADA2_nochim.otus'
