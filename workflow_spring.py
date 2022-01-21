@@ -292,7 +292,7 @@ def taxonomy(taxonomyFolder, blastFolder, k):
     # Check if blast file is empty
     if [ `cat {inputFile} | wc -l` != 0 ]
     then
-      Rscript scripts/taxonomy.r {inputFile} {summaryFile} {outputFile}
+      Rscript scripts/taxonomy_spring.r {inputFile} {summaryFile} {outputFile}
     else
       touch {outputFile}
     fi
