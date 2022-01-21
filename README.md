@@ -1,14 +1,14 @@
-### The bioinformatic workflow presented here allows efficient parallel processing of fastq files from Illumina sequencing of DNA metabarcoding libraries. I.e. sequencing libraries built on pools of amplicons from complex samples (e.g. eDNA samples or bulk samples with DNA from several taxa), which have each been PCR-amplified using a unique combination of oligonucleotide tags on the primers. The workflow operates with amplicon sequence variants (ASVs) throughout, i.e. sequences are not collapsed into OTUs. The workflow includes demultiplexing, quality and error filtering, BLAST searching, and taxonomic classification. Databases used for BLAST searching and taxonomic classification are downloaded locally, facilitating the analysis of large numbers of ASVs. The main outputs of the workflow are an ASV table (which ASVs are found in which samples) and the taxonomic classifications of these ASVs, based on a Last Common Ancestor (LCA) approach. Overlaps in sequence similarity to query sequences are used to determine which BLAST hits to include when assigning an LCA (Sigsgaard et al. 2020). Importantly, the automatic classifications always need to be checked carefully and manually, using general knowledge of taxonomy, local species occurrences, synonyms etc., in order to produce a more realistic final list of taxa. The instructions and files presented in this repository are specific to the Agersnap et al. (2022) study. For a more general and improved version of the pipeline, please see https://github.com/evaegelyng/MetaBarFlow. Enjoy!
+### The bioinformatic workflow presented here allows efficient parallel processing of fastq files from Illumina sequencing of DNA metabarcoding libraries. I.e. sequencing libraries built on pools of amplicons from complex samples (e.g. eDNA samples or bulk samples with DNA from several taxa), which have each been PCR-amplified using a unique combination of oligonucleotide tags on the primers. The workflow operates with amplicon sequence variants (ASVs) throughout, i.e. sequences are not collapsed into OTUs. The workflow includes demultiplexing, quality and error filtering, BLAST searching, and taxonomic classification. Databases used for BLAST searching and taxonomic classification are downloaded locally, facilitating the analysis of large numbers of ASVs. The main outputs of the workflow are an ASV table (which ASVs are found in which samples) and the taxonomic classifications of these ASVs, based on a Last Common Ancestor (LCA) approach. Importantly, the automatic classifications always need to be checked carefully and manually, using general knowledge of taxonomy, local species occurrences, synonyms etc., in order to produce a more realistic final list of taxa. The instructions and files presented in this repository are specific to the Agersnap et al. (2022) study. For a more general and improved version of the pipeline, please see https://github.com/evaegelyng/MetaBarFlow. Enjoy!
 
 #### Make overall directories
 
   `mkdir -p backup/data tmp results`
 
-#### Copy the scripts folder and the conda environment description from the Github repository to the backup folder. 
+#### Copy the scripts folder and the conda environment description ("havblitz_may_20.yml") from the Github repository to the backup folder. 
 
-#### Put the relevant workflow.py file in the main directory. The workflow file used for the 
+#### Put the relevant workflow.py file in the main directory. The workflow file used for the spring season was slightly different from the one used for the fall season. These differences are merely related to improved automatic handling of empty files (when filters remove all sequences in a file) and of cases where the split function outputs a lower number of fasta files than specified (see details in the section on splitting). Thus, they should not have had an effect on the results.
 
-#### In the backup folder, add a readme file with explanations about the project. Ideally, put an appropriate readme file in the scripts and data folders as well
+#### In the backup folder, add a readme file with explanations about the project. Ideally, put an appropriate readme file in the scripts and data folders as well.
 
   `touch backup/README.txt` 
 
@@ -19,19 +19,37 @@
   
   ln -s backup/data/ data
   
-  ln -s backup/environment.yml environment.yml
+  ln -s backup/havblitz_may_20.yml havblitz_may_20.yml
   
   ln -s backup/README.txt README.txt
 ```
  
 #### Create a conda environment based on the description file
 
-`conda env create --name projectname -f metabarflow_XXXXXX.yml`
+`conda env create --name projectname -f havblitz_may_20.yml`
   
 #### If you cannot create the environment based on the description file (updated packages may cause problems), create your own environment, beginning with the packages that are directly called in the scripts (cutadapt, sickle, taxizedb etc.). It can be helpful to use mamba to install packages, as it is faster than conda.
 
-   `conda install -c conda-forge mamba`
-   
+```  
+  conda activate projectname
+  
+  conda install -c conda-forge mamba
+```
+
+#### Install taxizedb with devtools:
+
+```
+  git config --global http.sslCAInfo /etc/ssl/certs/ca-bundle.crt # Network goes into a proxy, we need to give the certificate of the proxy to git
+    
+  unset https_proxy
+  
+  unset http_proxy
+
+  R 
+
+  devtools::install_github("ropensci/taxizedb")
+```
+
 #### The taxizedb NCBI database should be updated regularly to keep up to date with the GenBank nt database (there seems to be some lag in the taxizedb online database) 
 
 ```
@@ -68,15 +86,11 @@ or
 
 or if you have many libraries, run the following for the entire raw data folder
 
-  ``for i in `find . -name "*.gz"`; do gunzip $i; done &``  
-
-#### Use the software fastqc to further inspect the quality of the raw data:
-
- `sbatch YOUR_PATH/scripts/fastqc.sh`
+  ``for i in `find . -name "*.gz"`; do gunzip $i; done &``
    
-#### In each library data folder, make a tab separated file named tags.txt containing the sample names and corresponding forward and reverse tag sequences (see an example in data folder of this repository). Remember to put the library number/PCR replicate number at the end of each sample name (e.g. "SAMPLE1_1" for library 1, "SAMPLE1_2" for library 2 and so on. Check that none of the sample names themselves contain these endings, e.g. "SAMPLE_1"). This way, PCR replicates will be kept separate when the data from the different libraries are merged. You can start by making the file for library 1 in excel, transfer to the server, and then use this file as a template for the remaining libraries (just replace replicate number in the sample names). Note that these txt-files should be in UNIX format (not Windows - can be checked e.g. using notepad++). In some cases, it is also necessary to add an empty line at the end of each tags file, and to remove the tab separator ("\t") in all instances of "line.split("\t")" in the workflow.
+#### In each library data folder, make a tab separated file named tags.txt containing the sample names and corresponding forward and reverse tag sequences (see an example in data folder of this repository). Remember to put the library number/PCR replicate number at the end of each sample name (e.g. "SAMPLE1_1" for library 1, "SAMPLE1_2" for library 2 and so on. Check that none of the sample names themselves contain these endings, e.g. "SAMPLE_1"). This way, PCR replicates will be kept separate when the data from the different libraries are merged. You can start by making the file for library 1 in excel, transfer to the server, and then use this file as a template for the remaining libraries (just replace replicate number in the sample names). Note that these txt-files should be in UNIX format (not Windows - can be checked e.g. using notepad++). In some cases, it is also necessary to remove the empty line at the end of each tags file, and to add the tab separator ("\t") in all instances of "line.split()" in the workflow.
 
-#### The script create_batch.sh can be used to make a file (batchfileDADA2.list) in each library data folder containing the fastq file names, the primer sequences, and the minimum length required for a read (unaligned, i.e. forward or reverse read) after trimming of primers and tags. Replace the primer sequences and length specified in the script with those appropriate for your own project. If your primers contain inosine bases ("I"), these need to be replaced with "N", as the software does not recognize "I". 
+#### Create a file (batchfileDADA2.list) in each library data folder containing the fastq file names, the primer sequences, and the minimum length required for a read (unaligned, i.e. forward or reverse read) after trimming of primers and tags. Replace the primer sequences and length specified in the script with those appropriate for your own project. If your primers contain inosine bases ("I"), these need to be replaced with "N", as the software does not recognize "I". 
 
 #### If appropriate, change the minimum length requirement in the match_pairs.r script. Check whether it would be appropriate to change any of the options set for the blastn command, and add your own database path. A widely used blast database is the NCBI GenBank "nt" database, which can be downloaded accordingly (inside a fitting directory, and with a stable internet connection):
 
@@ -111,7 +125,7 @@ echo -e OldTaxID'\t'NewTaxID > MergedTaxIDs
 less merged.dmp | cut -f1,3 >> MergedTaxIDs
 ```
 
-#### In the taxonomy.r script, add your own path to the MergeTaxIDs table. Also, consider whether you for instance want to keep hits to "uncultured" and "environmental" sequences and if so, adjust the "remove" parameter to change this. Also consider whether the upper and lower margins should be adjusted (see explanation in the script).    
+#### In the taxonomy.r script, add your own path to the MergeTaxIDs table. Also, consider whether you for instance want to keep hits to "uncultured" and "environmental" sequences and if so, adjust the "remove" parameter to change this. Also consider whether the upper and lower margins should be adjusted (see explanation in the script). In Agersnap et al. (2022), a slightly different version of the taxonomy script was used for the spring season compared to the fall season. This difference is related to determining the sequence similarity threshold for including BLAST hits in the final LCA-based classification. For the fall season, a "fixed" threshold of 0.5% below the maximum similarity was used, while for the spring season, the lowest similarity observed for the best-matching taxon was used (Sigsgaard et al. 2020). This was done to better account for varying intra-specific variation in the barcode. Importantly, this should not have affected results, as all automatic classifications were checked manually.   
 
 #### In the workflow file, replace the project name and the path to the raw data with your own. If appropriate, change the length and quality requirements provided to the sickle command. 
 
@@ -119,7 +133,7 @@ less merged.dmp | cut -f1,3 >> MergedTaxIDs
 
 #### Run the gwf workflow from the main folder
 
-  `gwf run`
+  `gwf run workflow_XXX.py`
 
 #### If you get an error mentioning the backend, try to reconfigure this to slurm
 
@@ -127,15 +141,15 @@ less merged.dmp | cut -f1,3 >> MergedTaxIDs
 
 #### Check the status of the workflow using 
 
-  `gwf status` 
+  `gwf status workflow_XXX.py` 
 
 #### By adding the name of a specific target after the above command, you can see the status of this target. E.g:
 
- `gwf status demultiplex*` 
+ `gwf status workflow_XXX.py demultiplex*` 
 
 #### As the function splitting your fasta file of OTUs before BLAST searching may output a smaller number of files than the 99 files specified (it seems the software has a minimum threshold for the number of sequences that can go in each file), double-check in the .stderr log file that the number of sequences of the separate files add up to the total sequence number. Note that a hidden folder named ".gwf/logs" is where you will find your log files. Because the number of input files for BLAST searching is unknown until the split function has run, the remaining targets of the workflow can only be started once splitting is complete. To start the remaining targets, just use:
 
- `gwf run`
+ `gwf run workflow_XXX.py`
 
 #### Increase no. of cores, memory requirements and/or time limits if needed, or decrease if you need less resources. You can check your realized resource use for a target using the package gwf-utilization:
 
@@ -162,7 +176,7 @@ less merged.dmp | cut -f1,3 >> MergedTaxIDs
 
 ### Suggested Citation
 
-#### Please cite this GitHub repository using the DOI, and refer to the publication: Agersnap, S., Sigsgaard, E. E., Jensen, M. R., Avila, M. P., Carl, H., Møller, P. R., Krøs, S. L., Knudsen, S. W., Wisz, M. & Thomsen, P. F. A national scale “BioBlitz” using citizen science and eDNA metabarcoding for monitoring coastal marine fish. Front Mar Sci (2022).
+#### If using the improved version of the pipeline at https://github.com/evaegelyng/MetaBarFlow, please cite that GitHub repository using the up-to-date DOI given there. If using the scripts presented here, used in Agersnap et al. (2022), please cite this GitHub repository using the DOI. In either case, please refer to the publication: Agersnap, S., Sigsgaard, E. E., Jensen, M. R., Avila, M. P., Carl, H., Møller, P. R., Krøs, S. L., Knudsen, S. W., Wisz, M. & Thomsen, P. F. A national scale “BioBlitz” using citizen science and eDNA metabarcoding for monitoring coastal marine fish. Front Mar Sci (2022).
 
 ### Acknowledgements
 
@@ -178,4 +192,4 @@ less merged.dmp | cut -f1,3 >> MergedTaxIDs
 
 ### Questions
 
-#### If you have questions or issues, please email Eva Egelyng Sigsgaard (eva.sigsgaard@bio.au.dk) or leave a comment on this repository.
+#### If you have questions or issues, please email Eva Egelyng Sigsgaard (eva.sigsgaard@bio.au.dk) or leave a comment on the relevant repository.
