@@ -8,7 +8,7 @@ args = commandArgs(trailingOnly=TRUE)
 #
 # Authors: This script was mainly written by Tobias G. Frøslev (see https://github.com/tobiasgf/Bioinformatic-tools/tree/master/Eva_Sigsgaard_2018). 
 # It has here been modified by Eva Egelyng Sigsgaard such that instead of a fixed threshold ("upper margin") determining which BLAST hits to include for classification, this threshold
-# is determined for each query sequence as the minimum similarity obtained for the best matching taxid. Adrián Gómez has added the correction of outdated taxids that are no longer valid, 
+# is determined for each query sequence as the minimum similarity obtained for the best matching taxid (Sigsgaard et al. 2020). Adrián Gómez has added the correction of outdated taxids that are no longer valid, 
 # as they have been merged with other taxids.
 
 # The script requires a BLAST output from a set of OTUs
@@ -44,7 +44,7 @@ library(dplyr)
 library(tidyr)
 
 # Provide API key for NCBI
-options(ENTREZ_KEY="f174a98babca0f6f030f12e7f6a743835f08") 
+options(ENTREZ_KEY="YOUR_KEY") 
 
 # Read the completed blast results into a table
 IDtable <- read.csv(file = args[1], sep='\t', header=F, as.is=TRUE)
@@ -53,7 +53,7 @@ IDtable <- read.csv(file = args[1], sep='\t', header=F, as.is=TRUE)
 IDtable$V16<-"NA"
 
 # Read the possible problematic TaxIDs as a table
-MergedTaxIDs<-read.table("~/eDNA/blastdb/nt-old-30032020/taxdump/MergedTaxIDs", header=TRUE)
+MergedTaxIDs<-read.table("YOUR_PATH/MergedTaxIDs", header=TRUE)
 
 # Add header information
 names(IDtable) <- c("qseqid","sseqid","pident","length","mismatch","gapopen","qstart","qend","sstart","send","evalue","bitscore","qlen","qcovs","staxid","ssciname")
@@ -78,12 +78,12 @@ summary<-do.call(data.frame,aggregate(pident~qseqid+staxid+ssciname,data=IDtable
 summary<-summary[with(summary,order(summary$qseqid,-summary$pident.max)),]
 
 # For each qseqid, determine the minimum similarity for the best matching taxid (first row after sorting) 
-summary$pident.min.best<-summary$pident.max  # Just using pident.max to fill the column temporarily
+summary$pident.min.best<-"NA"
 for (i in unique (summary$qseqid)){
   summary[summary$qseqid==i,]$pident.min.best<-summary[summary$qseqid==i,]$pident.min[1]}
 
 # For each qseqid+taxid combination, determine the difference between the maximum similarity obtained for this combination, and the minimum similarity obtained for the best matching taxid
-summary$pident.diff<-summary$pident.max  # Just using pident.max to fill the column temporarily
+summary$pident.diff<-"NA"
 for (i in unique (summary$qseqid)){
   summary[summary$qseqid==i,]$pident.diff<-summary[summary$qseqid==i,]$pident.min.best-summary[summary$qseqid==i,]$pident.max}
 
@@ -91,7 +91,8 @@ for (i in unique (summary$qseqid)){
 summary$include<-ifelse(summary$pident.diff<=0,1,0)
 
 # Calculate the upper margin for each qseqid+taxid combination, as the maximum similarity for this taxid minus the minimum similarity for the best matching taxid
-summary$upper_margin<-summary$pident.max  # Just using pident.max to fill the column temporarily
+# Note 21-01-2022: The function applied here does not take into account multiple best-match taxids. Please see https://github.com/evaegelyng/MetaBarFlow for an improved version.
+summary$upper_margin<-"NA"
 for (i in unique (summary$qseqid)){
   summary[summary$qseqid==i,]$upper_margin<-summary[summary$qseqid==i,]$pident.max[1]-summary[summary$qseqid==i,]$pident.min.best[1]}
 
@@ -102,7 +103,7 @@ write.table(summary,file=args[2],sep="\t",row.names=FALSE)
 summary.best<-distinct(summary,qseqid,.keep_all=TRUE)
 
 # Creat new column for upper margin in IDtable
-IDtable$upper_margin <- IDtable$pident
+IDtable$upper_margin <- "NA"
 
 # Add upper margins to IDtable from summary.best table
 for (i in unique (IDtable$qseqid)){
@@ -168,7 +169,7 @@ prefilter <- function(IDtable, lower_margin=2, remove = c("uncultured", "environ
       if (nrow(test2) > 1) {test <- test2}
     }
     max <- max(test$pident)
-    upper <- max-max(test2$upper_margin)
+    upper <- max-max(test2$upper_margin) # Note 21-01-2022. This calculation is unnecessary, and is equivalent to using the minimum similarity for the best-matching taxid as upper threshold.
     lower <- max-lower_margin
     test <- test[which(test$pident >= lower),] # select all lines for a query
     test$margin <- "lower"
