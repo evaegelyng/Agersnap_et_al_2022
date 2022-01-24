@@ -210,7 +210,7 @@ less merged.dmp | cut -f1,3 >> MergedTaxIDs
 
 ## Suggested Citation
 
-#### If using the improved version of the pipeline at https://github.com/evaegelyng/MetaBarFlow, please cite that GitHub repository using the up-to-date DOI given there. If using the scripts presented here, used in Agersnap et al. (2022), please cite this GitHub repository using the DOI. In either case, please refer to the publication: Agersnap, S., Sigsgaard, E. E., Jensen, M. R., Avila, M. P., Carl, H., Møller, P. R., Krøs, S. L., Knudsen, S. W., Wisz, M. & Thomsen, P. F. A national scale “BioBlitz” using citizen science and eDNA metabarcoding for monitoring coastal marine fish. Front Mar Sci (2022).
+#### If using the improved version of the pipeline at https://github.com/evaegelyng/MetaBarFlow, please cite as specified there. If using the script versions presented here at https://github.com/evaegelyng/Agersnap_et_al_2022, please link to this GitHub repository. In either case, please refer to the publication: Agersnap, S., Sigsgaard, E. E., Jensen, M. R., Avila, M. P., Carl, H., Møller, P. R., Krøs, S. L., Knudsen, S. W., Wisz, M. & Thomsen, P. F. A national scale “BioBlitz” using citizen science and eDNA metabarcoding for monitoring coastal marine fish. Front Mar Sci (2022).
 
 ## Acknowledgements
 
